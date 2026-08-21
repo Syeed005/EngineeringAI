@@ -30,3 +30,12 @@ jobs:
 
       - name: Run unit tests
         run: dotnet test EngineeringAI.Tests/EngineeringAI.Tests.csproj --configuration Release --no-build --filter "FullyQualifiedName~EngineeringAI.Tests.Services"
+
+      - name: Publish API
+        run: dotnet publish EngineeringAI.Api/EngineeringAI.Api.csproj --configuration Release --no-build --output ./publish
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineeringai-api
+          path: ./publish
