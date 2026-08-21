@@ -39,3 +39,28 @@ jobs:
         with:
           name: engineeringai-api
           path: ./publish
+
+  deploy:
+    runs-on: windows-latest
+    needs: build-and-test
+
+    steps:
+      - name: Download API artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: engineeringai-api
+          path: ./publish
+
+      - name: Login to Azure using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: app-engineeringai-api-dev
+          package: ./publish
+
