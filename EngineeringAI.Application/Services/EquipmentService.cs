@@ -1,6 +1,7 @@
 ﻿using EngineeringAI.Application.Common;
 using EngineeringAI.Application.DTOs.Equipment;
 using EngineeringAI.Application.Exceptions;
+using EngineeringAI.Application.Interfaces.Messaging;
 using EngineeringAI.Application.Interfaces.Repositories;
 using EngineeringAI.Application.Interfaces.Services;
 using EngineeringAI.Domain.Entities;
@@ -12,12 +13,14 @@ using System.Text;
 namespace EngineeringAI.Application.Services {
     public class EquipmentService : IEquipmentService {
         private readonly IEquipmentRepository _equipmentRepository;
+        private readonly IEquipmentEventPublisher _eventPublisher;
         private readonly ILogger<EquipmentService> _logger;
-        public EquipmentService(IEquipmentRepository equipmentRepository, ILogger<EquipmentService> logger) {
-            _equipmentRepository = equipmentRepository;
+        public EquipmentService(IEquipmentRepository repository, ILogger<EquipmentService> logger, IEquipmentEventPublisher eventPublisher) {
+            _equipmentRepository = repository;
             _logger = logger;
+            _eventPublisher = eventPublisher;
         }
-        
+
         public async Task<PagedResult<EquipmentDto>> GetAsync(EquipmentQueryParameters queryParameters, CancellationToken cancellationToken = default) {
             var result = await _equipmentRepository.GetAsync(queryParameters, cancellationToken);
 
@@ -84,6 +87,13 @@ namespace EngineeringAI.Application.Services {
 
             var created = await _equipmentRepository.AddAsync(equipment, cancellationToken);
             _logger.LogInformation("Equipment {EquipmentNumber} created successfully with Id {EquipmentId}.", equipment.EquipmentNumber, equipment.Id);
+                  
+            await _eventPublisher.PublishEquipmentCreatedAsync(
+                equipment.Id,
+                equipment.EquipmentNumber,
+                equipment.ProjectId,
+                cancellationToken);
+
             return MapToDto(created);
         }
 

@@ -1,5 +1,6 @@
 ﻿using EngineeringAI.Application.DTOs.Equipment;
 using EngineeringAI.Application.Exceptions;
+using EngineeringAI.Application.Interfaces.Messaging;
 using EngineeringAI.Application.Interfaces.Repositories;
 using EngineeringAI.Application.Services;
 using EngineeringAI.Domain.Entities;
@@ -17,12 +18,13 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.ExistsByEquipmentNumberAsync("EQ-01001", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new CreateEquipmentRequest {
                 EquipmentNumber = "EQ-01001",
@@ -38,13 +40,20 @@ namespace EngineeringAI.Tests.Services {
             await act.Should()
                 .ThrowAsync<ConflictException>()
                 .WithMessage("Equipment number 'EQ-01001' already exists.");
+            eventPublisherMock.Verify(x => x.PublishEquipmentCreatedAsync(
+                It.IsAny<int>(),
+                request.EquipmentNumber,
+                request.ProjectId,
+                It.IsAny<CancellationToken>()
+            ), Times.Never);
         }
 
         [Fact]
         public async Task CreateAsync_WhenRequestIsValid_ShouldCreateEquipment() {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
-            var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var loggerMock = new Mock<ILogger<EquipmentService>>(); 
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.ExistsByEquipmentNumberAsync("EQ-02001", It.IsAny<CancellationToken>()))
@@ -65,7 +74,7 @@ namespace EngineeringAI.Tests.Services {
                     return equipment;
                 });
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new CreateEquipmentRequest {
                 EquipmentNumber = "EQ-02001",
@@ -92,12 +101,19 @@ namespace EngineeringAI.Tests.Services {
             result.EquipmentType.Should().Be("Pump");
             result.Status.Should().Be("Planned");
             repositoryMock.Verify(x => x.AddAsync(It.IsAny<Equipment>(), It.IsAny<CancellationToken>()), Times.Once);
+            eventPublisherMock.Verify(x => x.PublishEquipmentCreatedAsync(
+                1001,
+                request.EquipmentNumber,
+                request.ProjectId,
+                It.IsAny<CancellationToken>()
+            ),Times.Once);
         }
         [Fact]
         public async Task CreateAsync_WhenProjectDoesNotExist_ShouldThrowNotFoundException() {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.ExistsByEquipmentNumberAsync("EQ-02002", It.IsAny<CancellationToken>()))
@@ -107,7 +123,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.ProjectExistsAsync(999, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new CreateEquipmentRequest {
                 EquipmentNumber = "EQ-02002",
@@ -124,6 +140,12 @@ namespace EngineeringAI.Tests.Services {
                 .ThrowAsync<NotFoundException>()
                 .WithMessage("Project with Id '999' was not found.");
             repositoryMock.Verify(x => x.AddAsync(It.IsAny<Equipment>(), It.IsAny<CancellationToken>()), Times.Never);
+            eventPublisherMock.Verify(x => x.PublishEquipmentCreatedAsync(
+                It.IsAny<int>(),
+                request.EquipmentNumber,
+                request.ProjectId,
+                It.IsAny<CancellationToken>()
+            ), Times.Never);
         }
 
         [Fact]
@@ -131,6 +153,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.ExistsByEquipmentNumberAsync("EQ-02003", It.IsAny<CancellationToken>()))
@@ -144,7 +167,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.SupplierExistsAsync(999, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new CreateEquipmentRequest {
                 EquipmentNumber = "EQ-02003",
@@ -164,6 +187,12 @@ namespace EngineeringAI.Tests.Services {
                 .WithMessage("Supplier with Id '999' was not found.");
 
             repositoryMock.Verify(x => x.AddAsync(It.IsAny<Equipment>(), It.IsAny<CancellationToken>()), Times.Never);
+            eventPublisherMock.Verify(x => x.PublishEquipmentCreatedAsync(
+                It.IsAny<int>(),
+                request.EquipmentNumber,
+                request.ProjectId,
+                It.IsAny<CancellationToken>()
+            ), Times.Never);
         }
 
         [Fact]
@@ -171,12 +200,13 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Equipment?)null);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new UpdateEquipmentRequest {
                 EquipmentNumber = "EQ-02004",
@@ -203,6 +233,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             var equipment = new Equipment {
                 Id = 10,
@@ -220,7 +251,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.HasDeliverablesAsync(10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             // Act
             Func<Task> act = async () => await service.DeleteAsync(10);
@@ -238,12 +269,13 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Equipment?)null);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             // Act
             Func<Task> act = async () => await service.DeleteAsync(999);
@@ -261,6 +293,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             var equipment = new Equipment {
                 Id = 10,
@@ -278,7 +311,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.HasDeliverablesAsync(10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             // Act
             await service.DeleteAsync(10);
@@ -291,6 +324,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             var equipment = new Equipment {
                 Id = 10,
@@ -308,7 +342,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.ExistsByEquipmentNumberAsync("EQ-00020", 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new UpdateEquipmentRequest {
                 EquipmentNumber = "EQ-00020",
@@ -335,6 +369,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             var equipment = new Equipment {
                 Id = 10,
@@ -362,7 +397,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.SupplierExistsAsync(3, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             var request = new UpdateEquipmentRequest {
                 EquipmentNumber = "EQ-00010",
@@ -398,6 +433,7 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             var equipment = new Equipment {
                 Id = 5,
@@ -413,7 +449,7 @@ namespace EngineeringAI.Tests.Services {
                 .Setup(x => x.GetByIdAsync(5, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(equipment);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             // Act
             var result = await service.GetByIdAsync(5);
@@ -431,12 +467,13 @@ namespace EngineeringAI.Tests.Services {
             // Arrange
             var repositoryMock = new Mock<IEquipmentRepository>();
             var loggerMock = new Mock<ILogger<EquipmentService>>();
+            var eventPublisherMock = new Mock<IEquipmentEventPublisher>();
 
             repositoryMock
                 .Setup(x => x.GetByIdAsync(999, It.IsAny<CancellationToken>()))
                 .ReturnsAsync((Equipment?)null);
 
-            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object);
+            var service = new EquipmentService(repositoryMock.Object, loggerMock.Object, eventPublisherMock.Object);
 
             // Act
             var result = await service.GetByIdAsync(999);

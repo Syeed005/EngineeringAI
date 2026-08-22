@@ -29,8 +29,9 @@ public partial class Program {
         builder.Services.AddScoped<ValidationFilter<UpdateEquipmentRequest>>();
         builder.Services.AddScoped<ValidationFilter<EquipmentQueryParameters>>();
 
-        if (!builder.Environment.IsDevelopment()) {
-            builder.Services.AddOpenTelemetry().UseAzureMonitor();
+        if (!builder.Environment.IsEnvironment("Testing")) {
+            builder.Services.AddOpenTelemetry()
+                .UseAzureMonitor();
         }
         builder.Services.AddHealthChecks().AddDbContextCheck<EngineeringDbContext>();
 
@@ -63,7 +64,7 @@ public partial class Program {
 
             return Results.Ok(new {
                 Message = "Key Vault connection successful",
-                SecretValue = secret.Value.Value
+                //SecretValue = secret.Value.Value
             });
         });
 

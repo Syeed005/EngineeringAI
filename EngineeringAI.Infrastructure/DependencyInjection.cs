@@ -1,5 +1,9 @@
-﻿using EngineeringAI.Application.Interfaces.Repositories;
+﻿using Azure.Identity;
+using Azure.Messaging.ServiceBus;
+using EngineeringAI.Application.Interfaces.Messaging;
+using EngineeringAI.Application.Interfaces.Repositories;
 using EngineeringAI.Infrastructure.Data;
+using EngineeringAI.Infrastructure.Messaging;
 using EngineeringAI.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,10 +15,24 @@ using System.Text;
 namespace EngineeringAI.Infrastructure {
     public static class DependencyInjection {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration) {
-            services.AddDbContext<EngineeringDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("EngineeringDb")));
-
+            
+            services.AddDbContext<EngineeringDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("EngineeringDb")));
             services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+
+            services.AddSingleton(sp =>
+            {
+                var fullyQualifiedNamespace = configuration["ServiceBus:FullyQualifiedNamespace"];
+
+                if (string.IsNullOrWhiteSpace(fullyQualifiedNamespace)) {
+                    throw new InvalidOperationException("Service Bus namespace is not configured.");
+                }
+
+                return new ServiceBusClient(
+                    fullyQualifiedNamespace,
+                    new DefaultAzureCredential());
+            });
+
+            services.AddScoped<IEquipmentEventPublisher, EquipmentEventPublisher>();
 
             return services;
         }

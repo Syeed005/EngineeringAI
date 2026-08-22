@@ -49,8 +49,9 @@ namespace EngineeringAI.Tests.Integration {
         [Fact]
         public async Task CreateEquipment_WhenRequestIsValid_ShouldReturnCreated() {
             // Arrange
+            var equipmentNumber = $"EQ-TEST-{Guid.NewGuid():N}";
             var request = new {
-                equipmentNumber = "EQ-TEST-100",
+                equipmentNumber = equipmentNumber,
                 name = "Integration Test Pump",
                 description = "Created during integration testing.",
                 projectId = 1,
@@ -69,7 +70,7 @@ namespace EngineeringAI.Tests.Integration {
             var createdEquipment = await response.Content.ReadFromJsonAsync<EquipmentDto>();
 
             createdEquipment.Should().NotBeNull();
-            createdEquipment!.EquipmentNumber.Should().Be("EQ-TEST-100");
+            createdEquipment!.EquipmentNumber.Should().Be(equipmentNumber);
 
             // Cleanup
             var deleteResponse = await _client.DeleteAsync($"/api/equipment/{createdEquipment.Id}");
