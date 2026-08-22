@@ -1,4 +1,6 @@
+using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Azure.Security.KeyVault.Secrets;
 using EngineeringAI.Api.ExceptionHandling;
 using EngineeringAI.Api.Filters;
 using EngineeringAI.Application;
@@ -50,6 +52,21 @@ public partial class Program {
         app.UseStatusCodePages();
 
         app.MapHealthChecks("/health");
+
+        app.MapGet("/test-keyvault", async () =>
+        {
+            var client = new SecretClient(
+                new Uri("https://kv-engineeringai-dev-001.vault.azure.net/"),
+                new DefaultAzureCredential());
+
+            var secret = await client.GetSecretAsync("EngineeringAI-TestSecret");
+
+            return Results.Ok(new {
+                Message = "Key Vault connection successful",
+                SecretValue = secret.Value.Value
+            });
+        });
+
 
         app.Run();
     }
