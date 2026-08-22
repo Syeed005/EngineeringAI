@@ -3,6 +3,7 @@
     <Project Path="EngineeringAI.Api/EngineeringAI.Api.csproj" />
     <Project Path="EngineeringAI.Application/EngineeringAI.Application.csproj" />
     <Project Path="EngineeringAI.Domain/EngineeringAI.Domain.csproj" />
+    <Project Path="EngineeringAI.Functions/EngineeringAI.Functions.csproj" Id="1dd7a52a-250d-4ce1-99f0-8f65c3a17c0b" />
     <Project Path="EngineeringAI.Infrastructure/EngineeringAI.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">

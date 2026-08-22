@@ -40,6 +40,16 @@ jobs:
           name: engineeringai-api
           path: ./publish
 
+      - name: Publish Azure Function
+        run: dotnet publish EngineeringAI.Functions/EngineeringAI.Functions.csproj --configuration Release --no-build --output ./function-publish
+
+      - name: Upload Function artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineeringai-functions
+          path: ./function-publish
+
+
   deploy:
     runs-on: windows-latest
     needs: build-and-test
@@ -67,4 +77,16 @@ jobs:
         with:
           app-name: app-engineeringai-api-dev
           package: ./publish
+
+      - name: Download Function artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: engineeringai-functions
+          path: ./function-publish
+
+      - name: Deploy Azure Function
+        uses: Azure/functions-action@v1
+        with:
+          app-name: func-engineeringai-dev-001
+          package: ./function-publish
 
