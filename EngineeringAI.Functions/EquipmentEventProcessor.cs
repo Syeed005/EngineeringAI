@@ -16,17 +16,18 @@ public class EquipmentEventProcessor
     }
 
     [Function(nameof(EquipmentEventProcessor))]
-    public async Task Run(
-        [ServiceBusTrigger(
-        "equipment-events",
-        Connection = "ServiceBusConnection",
-        AutoCompleteMessages = false)]
-    ServiceBusReceivedMessage message,
-    ServiceBusMessageActions messageActions)
+    public async Task Run([ServiceBusTrigger("equipment-events", Connection = "ServiceBusConnection", AutoCompleteMessages = false)]
+        ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions)
     {
         _logger.LogInformation("Message ID: {id}", message.MessageId);
         _logger.LogInformation("Message Body: {body}", message.Body);
         _logger.LogInformation("Message Content-Type: {contentType}", message.ContentType);
+
+        //simulating DLQ behaviuor
+        if (message.Body.ToString().Contains("EQ-DLQ-001")) {
+            throw new InvalidOperationException("Simulated processing failure for dead-letter testing.");
+        }
 
         // Complete the message
         await messageActions.CompleteMessageAsync(message);
