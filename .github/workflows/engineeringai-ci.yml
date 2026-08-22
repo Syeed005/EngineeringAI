@@ -43,11 +43,16 @@ jobs:
       - name: Publish Azure Function
         run: dotnet publish EngineeringAI.Functions/EngineeringAI.Functions.csproj --configuration Release --no-build --output ./function-publish
 
+      - name: Verify Function publish output
+        shell: pwsh
+        run: Get-ChildItem ./function-publish -Force
+
       - name: Upload Function artifact
         uses: actions/upload-artifact@v4
         with:
           name: engineeringai-functions
           path: ./function-publish
+          include-hidden-files: true
 
 
   deploy:
