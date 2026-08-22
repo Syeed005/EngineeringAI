@@ -33,7 +33,7 @@ namespace EngineeringAI.Api.ExceptionHandling {
             if (problemDetails.Status == StatusCodes.Status500InternalServerError)
                 _logger.LogError(exception, "Unhandled exception occurred.");
 
-            httpContext.Response.StatusCode = problemDetails.Status.Value;
+            httpContext.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
             await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
 
