@@ -52,7 +52,7 @@ jobs:
         with:
           name: engineeringai-functions
           path: ./function-publish
-          include-hidden-files: true
+          # include-hidden-files: true
 
 
   deploy:
@@ -89,9 +89,15 @@ jobs:
           name: engineeringai-functions
           path: ./function-publish
 
+      - name: Create clean deployment package
+        shell: pwsh
+        run: |
+          if (Test-Path "./function-deploy.zip") { Remove-Item "./function-deploy.zip" }
+          Compress-Archive -Path ./function-publish/* -DestinationPath ./function-deploy.zip -Force
+
       - name: Deploy Azure Function
         uses: Azure/functions-action@v1
         with:
           app-name: func-engineeringai-dev-001
-          package: ./function-publish
+          package: ./function-publish.zip
 
