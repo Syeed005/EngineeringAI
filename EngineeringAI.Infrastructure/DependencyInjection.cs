@@ -19,8 +19,14 @@ using System.Text;
 namespace EngineeringAI.Infrastructure {
     public static class DependencyInjection {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration) {
-            
-            services.AddDbContext<EngineeringDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("EngineeringDb")));
+
+            var engineeringDbConnectionString = configuration.GetConnectionString("EngineeringDb");
+
+            if (string.IsNullOrWhiteSpace(engineeringDbConnectionString)) {
+                throw new InvalidOperationException("EngineeringDb connection string is not configured.");
+            }
+
+            services.AddDbContext<EngineeringDbContext>(options => options.UseSqlServer(engineeringDbConnectionString));
             services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
 
@@ -52,7 +58,26 @@ namespace EngineeringAI.Infrastructure {
                 return client.CreateSender(options.EquipmentEventsQueue);
             });
 
+            services.AddOptions<AiOptions>()
+                .Bind(configuration.GetSection(AiOptions.SectionName))
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.Endpoint),
+                    "AI endpoint is required.")
+                .Validate(
+                    options => Uri.TryCreate(
+                        options.Endpoint,
+                        UriKind.Absolute,
+                        out var uri) &&
+                        (uri.Scheme == Uri.UriSchemeHttps ||
+                         uri.Scheme == Uri.UriSchemeHttp),
+                    "AI endpoint must be a valid HTTP/HTTPS URI.")
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.Deployment),
+                    "AI deployment is required.")
+                .ValidateOnStart();
+
             services.AddScoped<IEquipmentEventPublisher, EquipmentEventPublisher>();
+            services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
 
             return services;
         }

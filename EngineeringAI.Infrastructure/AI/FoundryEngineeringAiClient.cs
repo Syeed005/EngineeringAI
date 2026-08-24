@@ -1,7 +1,9 @@
 ﻿using Azure.AI.OpenAI;
 using Azure.Identity;
 using EngineeringAI.Application.Interfaces.AI;
+using EngineeringAI.Application.Options;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using OpenAI.Chat;
 using System;
 using System.Collections.Generic;
@@ -11,22 +13,16 @@ namespace EngineeringAI.Infrastructure.AI {
     public class FoundryEngineeringAiClient : IEngineeringAiClient {
         private readonly ChatClient _chatClient;
 
-        public FoundryEngineeringAiClient(IConfiguration configuration) {
-            var endpoint = configuration["AI:Endpoint"];
-            var deployment = configuration["AI:Deployment"];
-
-            if (string.IsNullOrWhiteSpace(endpoint))
-                throw new InvalidOperationException("AI endpoint is not configured.");
-
-            if (string.IsNullOrWhiteSpace(deployment))
-                throw new InvalidOperationException("AI deployment is not configured.");
+        public FoundryEngineeringAiClient(IOptions<AiOptions> options) {
+            var aiOptions = options.Value;
 
             var azureClient = new AzureOpenAIClient(
-                new Uri(endpoint),
-                new DefaultAzureCredential());
+            new Uri(aiOptions.Endpoint),
+            new DefaultAzureCredential());
 
-            _chatClient = azureClient.GetChatClient(deployment);
+            _chatClient = azureClient.GetChatClient(aiOptions.Deployment);
         }
+
         public async Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default) {
             var messages = new List<ChatMessage>{
                 new SystemChatMessage(systemPrompt),
