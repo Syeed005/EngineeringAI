@@ -1,9 +1,11 @@
-﻿using EngineeringAI.Application.Exceptions;
+﻿using EngineeringAI.Application.DTOs.AI;
+using EngineeringAI.Application.Exceptions;
 using EngineeringAI.Application.Interfaces.AI;
 using EngineeringAI.Application.Interfaces.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 
 namespace EngineeringAI.Application.Services {
     public class EquipmentAiService {
@@ -15,7 +17,7 @@ namespace EngineeringAI.Application.Services {
             _aiClient = aiClient;
         }
 
-        public async Task<string> GenerateSummaryAsync(int equipmentId, CancellationToken cancellationToken = default) {
+        public async Task<EquipmentAiSummaryResponse> GenerateSummaryAsync(int equipmentId, CancellationToken cancellationToken = default) {
             var equipment = await _repository.GetByIdAsync(equipmentId, cancellationToken);
 
             if (equipment is null) {
@@ -25,9 +27,16 @@ namespace EngineeringAI.Application.Services {
             var systemPrompt =
                 """
                 You are an engineering assistant.
-                Summarize equipment information clearly and professionally.
+                Analyze the supplied equipment information.
                 Do not invent facts that are not present in the supplied data.
-                Highlight important engineering details and any obvious missing information.
+                Return ONLY valid JSON using exactly this structure:
+                {
+                  "summary": "string",
+                  "missingInformation": ["string"],
+                  "risks": ["string"],
+                  "recommendedActions": ["string"]
+                }
+                If no items exist for an array, return an empty array.
                 """;
 
             var userPrompt =
@@ -41,12 +50,24 @@ namespace EngineeringAI.Application.Services {
                 Manufacturer: {equipment.Manufacturer}
                 Status: {equipment.Status}
                 Project Id: {equipment.ProjectId}
-                Supplier Id: {equipment.SupplierId}
-
-                Provide a concise engineering summary.
+                Supplier Id: {equipment.SupplierId}                
                 """;
 
-            return await _aiClient.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+            var aiResponse = await _aiClient.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+
+            var result = JsonSerializer.Deserialize<EquipmentAiSummaryResponse>(
+                aiResponse,
+                new JsonSerializerOptions {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            if (result is null) {
+                throw new InvalidOperationException("AI response could not be deserialized.");
+            }
+
+            result.EquipmentId = equipmentId;
+
+            return result;
         }
     }
 }
