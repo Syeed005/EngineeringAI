@@ -1,18 +1,25 @@
-using System;
-using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
+using EngineeringAI.Domain.Entities;
+using EngineeringAI.Functions.Models;
+using EngineeringAI.Infrastructure.Data;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace EngineeringAI.Functions;
 
 public class EquipmentEventProcessor
 {
     private readonly ILogger<EquipmentEventProcessor> _logger;
+    private readonly EngineeringDbContext _dbContext;
 
-    public EquipmentEventProcessor(ILogger<EquipmentEventProcessor> logger)
+    public EquipmentEventProcessor(ILogger<EquipmentEventProcessor> logger, EngineeringDbContext dbContext)
     {
         _logger = logger;
+        _dbContext = dbContext;
     }
 
     [Function(nameof(EquipmentEventProcessor))]
@@ -20,16 +27,45 @@ public class EquipmentEventProcessor
         ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions)
     {
-        _logger.LogInformation("Message ID: {id}", message.MessageId);
-        _logger.LogInformation("Message Body: {body}", message.Body);
-        _logger.LogInformation("Message Content-Type: {contentType}", message.ContentType);
+        _logger.LogInformation("Received Service Bus message {MessageId}.", message.MessageId);
 
-        //simulating DLQ behaviuor
-        if (message.Body.ToString().Contains("EQ-DLQ-001")) {
-            throw new InvalidOperationException("Simulated processing failure for dead-letter testing.");
+        var equipmentEvent = JsonSerializer.Deserialize<EquipmentCreatedEvent>(
+            message.Body.ToString(),
+            new JsonSerializerOptions {
+                PropertyNameCaseInsensitive = true
+            });
+
+        if (equipmentEvent is null) {
+            throw new InvalidOperationException("Unable to deserialize EquipmentCreated event.");
         }
 
-        // Complete the message
+        var alreadyProcessed = await _dbContext.IntegrationAudits.AnyAsync(x => x.EventId == message.MessageId);
+
+        if (alreadyProcessed) {
+            _logger.LogWarning("Service Bus message {MessageId} has already been processed.",message.MessageId);
+
+            await messageActions.CompleteMessageAsync(message);
+            return;
+        }
+
+        var audit = new IntegrationAudit {
+            EventId = message.MessageId,
+            EventType = equipmentEvent.EventType,
+            EquipmentId = equipmentEvent.EquipmentId,
+            EquipmentNumber = equipmentEvent.EquipmentNumber,
+            Status = "Processed",
+            ProcessedAtUtc = DateTime.UtcNow
+        };
+
+        _dbContext.IntegrationAudits.Add(audit);
+
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Equipment event {MessageId} for equipment {EquipmentNumber} processed successfully.",
+            message.MessageId,
+            equipmentEvent.EquipmentNumber);
+
         await messageActions.CompleteMessageAsync(message);
     }
 }

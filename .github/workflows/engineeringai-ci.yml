@@ -52,7 +52,7 @@ jobs:
         with:
           name: engineeringai-functions
           path: ./function-publish
-          include-hidden-files: true
+          # include-hidden-files: true
 
 
   deploy:
@@ -99,5 +99,5 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: func-engineeringai-dev-001
-          package: ./function-deploy.zip
+          package: ./function-publish
 

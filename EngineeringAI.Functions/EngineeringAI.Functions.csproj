@@ -19,4 +19,9 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\EngineeringAI.Domain\EngineeringAI.Domain.csproj" />
+    <ProjectReference Include="..\EngineeringAI.Infrastructure\EngineeringAI.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

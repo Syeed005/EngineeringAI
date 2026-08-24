@@ -13,6 +13,7 @@ namespace EngineeringAI.Infrastructure.Data {
         public DbSet<Supplier> Suppliers => Set<Supplier>();
         public DbSet<Equipment> Equipment => Set<Equipment>();
         public DbSet<Deliverable> Deliverables => Set<Deliverable>();
+        public DbSet<IntegrationAudit> IntegrationAudits => Set<IntegrationAudit>();
 
         //That tells EF Core to automatically find our configuration classes instead of putting all database mapping inside OnModelCreating().
         protected override void OnModelCreating(ModelBuilder modelBuilder) {

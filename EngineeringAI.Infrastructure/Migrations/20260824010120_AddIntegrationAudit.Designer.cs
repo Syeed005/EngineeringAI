@@ -4,6 +4,7 @@ using EngineeringAI.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EngineeringAI.Infrastructure.Migrations
 {
     [DbContext(typeof(EngineeringDbContext))]
-    partial class EngineeringDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260824010120_AddIntegrationAudit")]
+    partial class AddIntegrationAudit
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
