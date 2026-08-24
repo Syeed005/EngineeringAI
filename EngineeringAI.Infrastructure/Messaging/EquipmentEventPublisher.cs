@@ -7,14 +7,14 @@ using System.Text.Json;
 
 namespace EngineeringAI.Infrastructure.Messaging {
     public class EquipmentEventPublisher : IEquipmentEventPublisher {
-        private readonly ServiceBusClient _serviceBusClient;
+        private readonly ServiceBusSender _sender;
 
-        public EquipmentEventPublisher(ServiceBusClient serviceBusClient) {
-            _serviceBusClient = serviceBusClient;
+        public EquipmentEventPublisher(ServiceBusSender sender) {
+            _sender = sender;
         }
 
         public async Task PublishEquipmentCreatedAsync(int equipmentId, string equipmentNumber, int projectId, CancellationToken cancellationToken = default) {
-            var sender = _serviceBusClient.CreateSender("equipment-events");
+            //var sender = _serviceBusClient.CreateSender("equipment-events");
 
             var eventData = new {
                 EventType = "EquipmentCreated",
@@ -32,7 +32,7 @@ namespace EngineeringAI.Infrastructure.Messaging {
                 MessageId = Guid.NewGuid().ToString()
             };
 
-            await sender.SendMessageAsync(message, cancellationToken);
+            await _sender.SendMessageAsync(message, cancellationToken);
         }
     }
 }

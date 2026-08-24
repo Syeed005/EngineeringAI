@@ -1,7 +1,9 @@
 ﻿using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using EngineeringAI.Application.Interfaces.AI;
 using EngineeringAI.Application.Interfaces.Messaging;
 using EngineeringAI.Application.Interfaces.Repositories;
+using EngineeringAI.Infrastructure.AI;
 using EngineeringAI.Infrastructure.Data;
 using EngineeringAI.Infrastructure.Messaging;
 using EngineeringAI.Infrastructure.Repositories;
@@ -18,6 +20,7 @@ namespace EngineeringAI.Infrastructure {
             
             services.AddDbContext<EngineeringDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("EngineeringDb")));
             services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
 
             services.AddSingleton(sp =>
             {
@@ -27,9 +30,13 @@ namespace EngineeringAI.Infrastructure {
                     throw new InvalidOperationException("Service Bus namespace is not configured.");
                 }
 
-                return new ServiceBusClient(
-                    fullyQualifiedNamespace,
-                    new DefaultAzureCredential());
+                return new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+            });
+
+            services.AddSingleton(sp =>
+            {
+                var client = sp.GetRequiredService<ServiceBusClient>();
+                return client.CreateSender("equipment-events");
             });
 
             services.AddScoped<IEquipmentEventPublisher, EquipmentEventPublisher>();

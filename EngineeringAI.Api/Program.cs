@@ -29,10 +29,13 @@ public partial class Program {
         builder.Services.AddScoped<ValidationFilter<UpdateEquipmentRequest>>();
         builder.Services.AddScoped<ValidationFilter<EquipmentQueryParameters>>();
 
-        if (!builder.Environment.IsEnvironment("Testing")) {
+        var applicationInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+
+        if (!string.IsNullOrWhiteSpace(applicationInsightsConnectionString)) {
             builder.Services.AddOpenTelemetry()
                 .UseAzureMonitor();
         }
+
         builder.Services.AddHealthChecks().AddDbContextCheck<EngineeringDbContext>();
 
         var app = builder.Build();
