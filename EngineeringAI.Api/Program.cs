@@ -54,19 +54,19 @@ public partial class Program {
 
         app.MapHealthChecks("/health");
 
-        app.MapGet("/test-keyvault", async () =>
-        {
-            var client = new SecretClient(
-                new Uri("https://kv-engineeringai-dev-001.vault.azure.net/"),
-                new DefaultAzureCredential());
+        //app.MapGet("/test-keyvault", async () =>
+        //{
+        //    var client = new SecretClient(
+        //        new Uri("https://kv-engineeringai-dev-001.vault.azure.net/"),
+        //        new DefaultAzureCredential());
 
-            var secret = await client.GetSecretAsync("EngineeringAI-TestSecret");
+        //    var secret = await client.GetSecretAsync("EngineeringAI-TestSecret");
 
-            return Results.Ok(new {
-                Message = "Key Vault connection successful",
-                //SecretValue = secret.Value.Value
-            });
-        });
+        //    return Results.Ok(new {
+        //        Message = "Key Vault connection successful",
+        //        //SecretValue = secret.Value.Value
+        //    });
+        //});
 
 
         app.Run();
