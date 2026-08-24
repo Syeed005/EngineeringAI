@@ -57,15 +57,37 @@ public class EquipmentEventProcessor
             ProcessedAtUtc = DateTime.UtcNow
         };
 
-        _dbContext.IntegrationAudits.Add(audit);
+        try {
+            _dbContext.IntegrationAudits.Add(audit);
 
-        await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "Equipment event {MessageId} for equipment {EquipmentNumber} processed successfully.",
-            message.MessageId,
-            equipmentEvent.EquipmentNumber);
+            _logger.LogInformation(
+                "Equipment event {MessageId} for equipment {EquipmentNumber} processed successfully.",
+                message.MessageId,
+                equipmentEvent.EquipmentNumber);
 
-        await messageActions.CompleteMessageAsync(message);
+            await messageActions.CompleteMessageAsync(message);
+        } catch (DbUpdateException ex) {
+            var duplicateExists = await _dbContext.IntegrationAudits
+                .AsNoTracking()
+                .AnyAsync(x => x.EventId == message.MessageId);
+
+            if (duplicateExists) {
+                _logger.LogWarning(
+                    "Duplicate Service Bus message {MessageId} detected. Message will be completed without reprocessing.",
+                    message.MessageId);
+
+                await messageActions.CompleteMessageAsync(message);
+                return;
+            }
+
+            _logger.LogError(
+                ex,
+                "Database failure while processing Service Bus message {MessageId}.",
+                message.MessageId);
+
+            throw;
+        }
     }
 }
