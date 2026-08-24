@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using EngineeringAI.Application.Interfaces.AI;
 using EngineeringAI.Application.Interfaces.Messaging;
 using EngineeringAI.Application.Interfaces.Repositories;
+using EngineeringAI.Application.Options;
 using EngineeringAI.Infrastructure.AI;
 using EngineeringAI.Infrastructure.Data;
 using EngineeringAI.Infrastructure.Messaging;
@@ -10,6 +11,7 @@ using EngineeringAI.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,21 +24,32 @@ namespace EngineeringAI.Infrastructure {
             services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
 
+            services.AddOptions<ServiceBusOptions>()
+                .Bind(configuration.GetSection(ServiceBusOptions.SectionName))
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.FullyQualifiedNamespace),
+                    "Service Bus namespace is required.")
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.EquipmentEventsQueue),
+                    "Service Bus equipment events queue is required.")
+                .ValidateOnStart();
+
+
             services.AddSingleton(sp =>
             {
-                var fullyQualifiedNamespace = configuration["ServiceBus:FullyQualifiedNamespace"];
+                var options = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
 
-                if (string.IsNullOrWhiteSpace(fullyQualifiedNamespace)) {
-                    throw new InvalidOperationException("Service Bus namespace is not configured.");
-                }
-
-                return new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+                return new ServiceBusClient(
+                    options.FullyQualifiedNamespace,
+                    new DefaultAzureCredential());
             });
 
             services.AddSingleton(sp =>
             {
                 var client = sp.GetRequiredService<ServiceBusClient>();
-                return client.CreateSender("equipment-events");
+                var options = sp.GetRequiredService<IOptions<ServiceBusOptions>>().Value;
+
+                return client.CreateSender(options.EquipmentEventsQueue);
             });
 
             services.AddScoped<IEquipmentEventPublisher, EquipmentEventPublisher>();
