@@ -4,6 +4,6 @@ using System.Text;
 
 namespace EngineeringAI.Application.Interfaces.AI {
     public interface IEngineeringAiClient {
-        Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default);
+        Task<T> GenerateStructuredAsync<T>(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default);
     }
 }

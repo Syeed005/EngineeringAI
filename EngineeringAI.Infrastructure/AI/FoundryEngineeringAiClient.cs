@@ -10,6 +10,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Schema;
 
 namespace EngineeringAI.Infrastructure.AI {
     public class FoundryEngineeringAiClient : IEngineeringAiClient {
@@ -39,6 +41,43 @@ namespace EngineeringAI.Infrastructure.AI {
             _logger.LogInformation("AI request completed in {ElapsedMilliseconds} ms.", elapsed.TotalMilliseconds);
             return response.Value.Content[0].Text;
 
+        }
+
+        public async Task<T> GenerateStructuredAsync<T>(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default) {
+            var messages = new List<ChatMessage> {
+                new SystemChatMessage(systemPrompt),
+                new UserChatMessage(userPrompt)
+            };
+
+            var options = new ChatCompletionOptions {
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                    jsonSchemaFormatName: typeof(T).Name,
+                    jsonSchema: BinaryData.FromString(JsonSerializer.Serialize(
+                        JsonSchemaExporter.GetJsonSchemaAsNode(
+                            JsonSerializerOptions.Default,
+                            typeof(T)))),
+                    jsonSchemaIsStrict: true)
+            };
+
+            var startedAt = Stopwatch.GetTimestamp();
+
+            var response = await _chatClient.CompleteChatAsync(messages,options,cancellationToken);
+
+            var elapsed = Stopwatch.GetElapsedTime(startedAt);
+
+            _logger.LogInformation("AI structured request completed in {ElapsedMilliseconds} ms.", elapsed.TotalMilliseconds);
+
+            var json = response.Value.Content[0].Text;
+
+            var result = JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions {
+                    PropertyNameCaseInsensitive = true
+                });
+
+            if (result is null) {
+                throw new InvalidOperationException($"AI response could not be deserialized to {typeof(T).Name}.");
+            }
+
+            return result;
         }
     }
 }

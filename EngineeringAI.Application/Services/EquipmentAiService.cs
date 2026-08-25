@@ -27,16 +27,15 @@ namespace EngineeringAI.Application.Services {
             var systemPrompt =
                 """
                 You are an engineering assistant.
+
                 Analyze the supplied equipment information.
                 Do not invent facts that are not present in the supplied data.
-                Return ONLY valid JSON using exactly this structure:
-                {
-                  "summary": "string",
-                  "missingInformation": ["string"],
-                  "risks": ["string"],
-                  "recommendedActions": ["string"]
-                }
-                If no items exist for an array, return an empty array.
+
+                Identify:
+                - a concise engineering summary,
+                - missing information,
+                - potential risks,
+                - recommended follow-up actions.
                 """;
 
             var userPrompt =
@@ -53,18 +52,8 @@ namespace EngineeringAI.Application.Services {
                 Supplier Id: {equipment.SupplierId}                
                 """;
 
-            var aiResponse = await _aiClient.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
-
-            var result = JsonSerializer.Deserialize<EquipmentAiSummaryResponse>(
-                aiResponse,
-                new JsonSerializerOptions {
-                    PropertyNameCaseInsensitive = true
-                });
-
-            if (result is null) {
-                throw new InvalidOperationException("AI response could not be deserialized.");
-            }
-
+            var result = await _aiClient.GenerateStructuredAsync<EquipmentAiSummaryResponse>(systemPrompt,userPrompt,cancellationToken);
+            
             result.EquipmentId = equipmentId;
 
             return result;
