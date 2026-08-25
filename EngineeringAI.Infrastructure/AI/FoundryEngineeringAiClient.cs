@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 
 namespace EngineeringAI.Infrastructure.AI {
@@ -49,14 +50,21 @@ namespace EngineeringAI.Infrastructure.AI {
                 new UserChatMessage(userPrompt)
             };
 
+            var exporterOptions = new JsonSchemaExporterOptions {
+                TreatNullObliviousAsNonNullable = true,
+                TransformSchemaNode = (context, schema) => {
+                    if (schema is JsonObject obj && obj["type"]?.GetValue<string>() == "object") {
+                        obj["additionalProperties"] = false;
+                        if (obj["properties"] is JsonObject properties) obj["required"] = new JsonArray(properties.Select(x => JsonValue.Create(x.Key)).ToArray());
+                    }
+                    return schema;
+                }
+            };
+
+            var schema = JsonSchemaExporter.GetJsonSchemaAsNode(JsonSerializerOptions.Default, typeof(T), exporterOptions);
+
             var options = new ChatCompletionOptions {
-                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                    jsonSchemaFormatName: typeof(T).Name,
-                    jsonSchema: BinaryData.FromString(JsonSerializer.Serialize(
-                        JsonSchemaExporter.GetJsonSchemaAsNode(
-                            JsonSerializerOptions.Default,
-                            typeof(T)))),
-                    jsonSchemaIsStrict: true)
+                ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(jsonSchemaFormatName: typeof(T).Name, jsonSchema: BinaryData.FromString(schema.ToJsonString()), jsonSchemaIsStrict: true)
             };
 
             var startedAt = Stopwatch.GetTimestamp();
