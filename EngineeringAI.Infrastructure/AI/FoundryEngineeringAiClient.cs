@@ -18,15 +18,14 @@ namespace EngineeringAI.Infrastructure.AI {
     public class FoundryEngineeringAiClient : IEngineeringAiClient {
         private readonly ChatClient _chatClient;
         private readonly ILogger<FoundryEngineeringAiClient> _logger;
+        private readonly AiOptions _aiOptions;
 
         public FoundryEngineeringAiClient(IOptions<AiOptions> options, ILogger<FoundryEngineeringAiClient> logger) {
-            var aiOptions = options.Value;
+            _aiOptions = options.Value;
 
-            var azureClient = new AzureOpenAIClient(
-            new Uri(aiOptions.Endpoint),
-            new DefaultAzureCredential());
+            var azureClient = new AzureOpenAIClient(new Uri(_aiOptions.Endpoint), new DefaultAzureCredential());
 
-            _chatClient = azureClient.GetChatClient(aiOptions.Deployment);
+            _chatClient = azureClient.GetChatClient(_aiOptions.Deployment);
             _logger = logger;
         }
 
@@ -68,12 +67,12 @@ namespace EngineeringAI.Infrastructure.AI {
             };
 
             var startedAt = Stopwatch.GetTimestamp();
-
+            
             var response = await _chatClient.CompleteChatAsync(messages,options,cancellationToken);
-
+            
             var elapsed = Stopwatch.GetElapsedTime(startedAt);
-
-            _logger.LogInformation("AI structured request completed in {ElapsedMilliseconds} ms.", elapsed.TotalMilliseconds);
+            var usage = response.Value.Usage;
+            _logger.LogInformation("AI request completed. Deployment={Deployment} ElapsedMilliseconds={ElapsedMilliseconds} InputTokens={InputTokens} OutputTokens={OutputTokens} TotalTokens={TotalTokens}.", _aiOptions.Deployment, elapsed.TotalMilliseconds, usage.InputTokenCount, usage.OutputTokenCount, usage.TotalTokenCount);
 
             var json = response.Value.Content[0].Text;
 

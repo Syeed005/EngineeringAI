@@ -52,11 +52,15 @@ namespace EngineeringAI.Application.Services {
                 Supplier Id: {equipment.SupplierId}                
                 """;
 
-            var result = await _aiClient.GenerateStructuredAsync<EquipmentAiSummaryResponse>(systemPrompt,userPrompt,cancellationToken);
-            
-            result.EquipmentId = equipmentId;
+            var analysis = await _aiClient.GenerateStructuredAsync<EquipmentAiAnalysis>(systemPrompt,userPrompt,cancellationToken);
 
-            return result;
+            return new EquipmentAiSummaryResponse {
+                EquipmentId = equipmentId,
+                Summary = analysis.Summary,
+                MissingInformation = analysis.MissingInformation,
+                Risks = analysis.Risks,
+                RecommendedActions = analysis.RecommendedActions
+            };
         }
     }
 }
