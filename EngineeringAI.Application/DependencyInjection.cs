@@ -13,7 +13,9 @@ namespace EngineeringAI.Application {
             services.AddValidatorsFromAssembly( typeof(DependencyInjection).Assembly, ServiceLifetime.Transient);
             services.AddScoped<EquipmentAiService>();
             services.AddScoped<EngineeringDocumentIngestionService>();
-            
+            services.AddScoped<EngineeringRagService>();
+
+
             return services;
         }
     }
