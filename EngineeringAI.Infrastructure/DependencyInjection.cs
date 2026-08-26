@@ -74,6 +74,7 @@ namespace EngineeringAI.Infrastructure {
             services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
             services.AddSingleton<IEmbeddingClient, FoundryEmbeddingClient>();
             services.AddSingleton<IEngineeringSearchIndexer, AzureEngineeringSearchIndexer>();
+            services.AddSingleton<IEngineeringSearchService, AzureEngineeringSearchService>();
 
             return services;
         }
