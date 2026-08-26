@@ -37,7 +37,13 @@ namespace EngineeringAI.Application.Services {
 
             return new EngineeringRagResponse {
                 Answer = aiResult.Answer,
-                Sources = searchResults.Select(x => x.SourceFile).Distinct().ToList()
+                Sources = searchResults.Select(x => new EngineeringRagSource {
+                    SourceFile = x.SourceFile,
+                    Title = x.Title,
+                    DocumentId = x.DocumentId,
+                    ChunkNumber = x.ChunkNumber,
+                    Score = x.Score
+                }).ToList()
             };
         }
 
