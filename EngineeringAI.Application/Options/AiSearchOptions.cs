@@ -9,4 +9,3 @@ namespace EngineeringAI.Application.Options {
         public string IndexName { get; set; } = string.Empty;
     }
 }
-}
