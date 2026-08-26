@@ -3,11 +3,13 @@ using Azure.Messaging.ServiceBus;
 using EngineeringAI.Application.Interfaces.AI;
 using EngineeringAI.Application.Interfaces.Messaging;
 using EngineeringAI.Application.Interfaces.Repositories;
+using EngineeringAI.Application.Interfaces.Search;
 using EngineeringAI.Application.Options;
 using EngineeringAI.Infrastructure.AI;
 using EngineeringAI.Infrastructure.Data;
 using EngineeringAI.Infrastructure.Messaging;
 using EngineeringAI.Infrastructure.Repositories;
+using EngineeringAI.Infrastructure.Search;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,12 +34,8 @@ namespace EngineeringAI.Infrastructure {
 
             services.AddOptions<ServiceBusOptions>()
                 .Bind(configuration.GetSection(ServiceBusOptions.SectionName))
-                .Validate(
-                    options => !string.IsNullOrWhiteSpace(options.FullyQualifiedNamespace),
-                    "Service Bus namespace is required.")
-                .Validate(
-                    options => !string.IsNullOrWhiteSpace(options.EquipmentEventsQueue),
-                    "Service Bus equipment events queue is required.")
+                .Validate(options => !string.IsNullOrWhiteSpace(options.FullyQualifiedNamespace), "Service Bus namespace is required.")
+                .Validate(options => !string.IsNullOrWhiteSpace(options.EquipmentEventsQueue), "Service Bus equipment events queue is required.")
                 .ValidateOnStart();
 
 
@@ -60,24 +58,22 @@ namespace EngineeringAI.Infrastructure {
 
             services.AddOptions<AiOptions>()
                 .Bind(configuration.GetSection(AiOptions.SectionName))
-                .Validate(
-                    options => !string.IsNullOrWhiteSpace(options.Endpoint),
-                    "AI endpoint is required.")
-                .Validate(
-                    options => Uri.TryCreate(
-                        options.Endpoint,
-                        UriKind.Absolute,
-                        out var uri) &&
-                        (uri.Scheme == Uri.UriSchemeHttps ||
-                         uri.Scheme == Uri.UriSchemeHttp),
-                    "AI endpoint must be a valid HTTP/HTTPS URI.")
-                .Validate(
-                    options => !string.IsNullOrWhiteSpace(options.Deployment),
-                    "AI deployment is required.")
+                .Validate(options => !string.IsNullOrWhiteSpace(options.Endpoint), "AI endpoint is required.")
+                .Validate(options => Uri.TryCreate(options.Endpoint, UriKind.Absolute,out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp), "AI endpoint must be a valid HTTP/HTTPS URI.")
+                .Validate(options => !string.IsNullOrWhiteSpace(options.Deployment), "AI deployment is required.")
+                .Validate(options => !string.IsNullOrWhiteSpace(options.EmbeddingDeployment), "AI embedding deployment is required.")
+                .ValidateOnStart();
+
+            services.AddOptions<AiSearchOptions>()
+                .Bind(configuration.GetSection(AiSearchOptions.SectionName))
+                .Validate(x => !string.IsNullOrWhiteSpace(x.Endpoint), "AI Search endpoint is required.")
+                .Validate(x => !string.IsNullOrWhiteSpace(x.IndexName), "AI Search index name is required.")
                 .ValidateOnStart();
 
             services.AddScoped<IEquipmentEventPublisher, EquipmentEventPublisher>();
             services.AddSingleton<IEngineeringAiClient, FoundryEngineeringAiClient>();
+            services.AddSingleton<IEmbeddingClient, FoundryEmbeddingClient>();
+            services.AddSingleton<IEngineeringSearchIndexer, AzureEngineeringSearchIndexer>();
 
             return services;
         }

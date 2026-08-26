@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace EngineeringAI.Api.Controllers {
     [ApiController]
     [Route("api/equipment")]
-    public class EquipmentAiController : Controller {
+    public class EquipmentAiController : ControllerBase {
         private readonly EquipmentAiService _equipmentAiService;
 
         public EquipmentAiController(EquipmentAiService equipmentAiService) {
