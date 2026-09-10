@@ -7,10 +7,21 @@ The project is being developed using Clean Architecture principles with automate
 ## Architecture
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  ASP.NET Core   │────▶│  Clean           │────▶│  Azure App     │────▶│  Azure SQL       │────▶│  Azure Monitor   │
-│                 │     │  Architecture    │     │  Service       │     │                  │     │                  │
-└─────────────────┘     └──────────────────┘     └────────────────┘     └──────────────────┘     └──────────────────┘
+Existing Customer/Engineering Systems
+↓
+Integration / Migration Layer
+↓
+Azure SQL + Blob/Documents
+↓
+Extraction & Chunking
+↓
+Embeddings / Azure AI Search
+↓
+RAG
+↓
+Agent / Tools
+↓
+Enterprise Application
 ```
 
 ## Tech Stack
@@ -18,6 +29,8 @@ The project is being developed using Clean Architecture principles with automate
 - **Runtime:** .NET 10
 - **Framework:** ASP.NET Core
 - **Database:** Azure SQL
+- **Storage:** Azure Blob Storage
+- **Search:** Azure AI Search
 - **Hosting:** Azure App Service
 - **Monitoring:** Azure Monitor
 - **Architecture:** Clean Architecture
